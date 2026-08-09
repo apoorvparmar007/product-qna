@@ -14,7 +14,7 @@ class ProductState(TypedDict):
 
 llm = ChatOllama(model = 'qwen3:8b')
 
-prompt = "U.S. military capture of Venezuelan President Nicolás Maduro."
+prompt = "do you think it is right for U.S. military to  capture Venezuelan President Nicolás Maduro as they did in January 2026.?"
 
 
 # Compile the agent loop
