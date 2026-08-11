@@ -7,53 +7,11 @@ from langchain_core.tools import tool
 import sqlite3
 from langchain_google_genai import ChatGoogleGenerativeAI
 from dotenv import load_dotenv
+from tools import check_product_availability,check_product_price
 
 load_dotenv()
 
-# ddg_tool = DuckDuckGoSearchResults()
 
-# from langchain_core.tools import tool
-
-@tool
-def check_product_price(product_name: str) -> str:
-    """Check price for a toy product by name.
-
-    Args:
-        product_name: The name of the toy product to look up for price.
-    """
-    conn = sqlite3.connect("database/toyshop.db")
-    cur = conn.cursor()
-
-    cur.execute("SELECT price FROM products WHERE name LIKE ?", (f"%{product_name}%",))
-    count = cur.fetchall()
-
-    conn.close()
-
-    return (f"""Price of {product_name} is {count}""")
-
-
-@tool
-def check_product_availability(product_name: str) -> str:
-    """Check availability for a toy product by name.
-
-    Args:
-        product_name: The name of the toy product to look up.
-    """
-    conn = sqlite3.connect("database/toyshop.db")
-    cur = conn.cursor()
-
-    cur.execute("SELECT COUNT(*) FROM products WHERE name LIKE ?", (f"%{product_name}%",))
-    count = cur.fetchall()
-
-    conn.close()
-
-    return (f"""Found {count} records""")
-    
-
-    # for row in rows:
-    #     print(row)
-
-    # 
 
 class ProductState(TypedDict):
     query: str
@@ -65,6 +23,7 @@ class ProductState(TypedDict):
 def chat_node(state: ProductState):
     # question = """do you have RC robot currently in stock?"""
     query = state['query']
+    print("\n User Query: ",query,"\n")
     # llm = ChatOllama(model = 'qwen3:8b')
     llm = ChatGoogleGenerativeAI(model = 'gemini-3.1-flash-lite')
 
@@ -78,16 +37,19 @@ def chat_node(state: ProductState):
         {"role": "user", "content": query}
     ]}
 
-    for step in agent.stream(input_data, stream_mode="values"):
-        last_message = step["messages"][-1]
-        last_message.pretty_print()
+    # for step in agent.stream(input_data, stream_mode="values"):
+    #     last_message = step["messages"][-1]
+    #     last_message.pretty_print()
 
     response = agent.invoke(input_data)
 
     print("\n Printing the response\n")
-    print(response["messages"][-1].content)
+    content = response["messages"][-1].content
+    text = content[0]["text"]
 
-    return ({'product':response["messages"][-1].content})
+    print(text)
+
+    return ({'product':text})
 
 graph = StateGraph(ProductState)
 
@@ -98,9 +60,11 @@ graph.add_edge("chat_node",END)
 
 workflow = graph.compile()
 
-query = """what models of RC robot do you have?"""
+# query = """what models of RC robot do you have?"""
 
-workflow.invoke({"query":query})
+user_input = input()
+
+workflow.invoke({"query":user_input})
 
 # for event in agent.stream(input_data, stream_mode="values"):
 #     # This prints every step, state update, and LLM message as it happens
